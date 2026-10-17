@@ -1,0 +1,233 @@
+/*
+ * WorkBuddy 版莱茵生命开屏 —— 增量样式层。
+ *
+ * 上游 lib/splash.css 全文原封内联，本文件只在其后追加，作用域同样限制在
+ * #rhine-splash 下。新增类名以 rl-wb- 开头，不碰上游的 rl-*。
+ */
+
+/* ------------------------------------------------- bilingual 中文注释 */
+
+#rhine-splash em.rl-cn {
+  font-style: normal;
+  font-weight: 500;
+  margin-left: 0.58em;
+  letter-spacing: 0.08em;
+  opacity: 0.62;
+}
+
+#rhine-splash .rl-status em.rl-cn { font-size: 10px; letter-spacing: 0.04em; }
+
+#rhine-splash .rl-w em.rl-cn {
+  margin-left: 0.6em;
+  font-size: 0.78em;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
+}
+
+#rhine-splash .rl-access-sub em.rl-cn { font-size: 9.5px; letter-spacing: 0.06em; }
+
+#rhine-splash .rl-over em.rl-cn { font-size: 9.5px; letter-spacing: 0.1em; }
+
+#rhine-splash .rl-rail-tx em.rl-cn {
+  margin-left: 7px;
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  opacity: 0.5;
+}
+
+/* ------------------------------------------------------------ 阶段条 */
+
+/* 顶部框架条正中，跟随 .rl-top 的 rl-drop 动画一起落位 */
+#rhine-splash .rl-wb-stagebar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-left: 12px;
+  font: 500 9px/1 var(--rl-mono);
+  letter-spacing: 0.16em;
+  color: var(--rl-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 左侧橙色竖线，呼应索引轨的刻度语言 */
+#rhine-splash .rl-wb-stagebar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 1px;
+  height: 13px;
+  margin-top: -6.5px;
+  background: var(--rl-accent);
+}
+
+#rhine-splash .rl-wb-sb-no { font-variant-numeric: tabular-nums; }
+#rhine-splash .rl-wb-sb-no b { color: var(--rl-accent-ink); font-weight: 700; }
+
+#rhine-splash .rl-wb-sb-sep {
+  display: block;
+  width: 15px;
+  height: 1px;
+  background: var(--rl-line-strong);
+}
+
+#rhine-splash .rl-wb-sb-now {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  color: var(--rl-ink);
+  will-change: opacity, transform;
+}
+
+#rhine-splash .rl-wb-sb-zh { font-size: 10px; letter-spacing: 0.18em; }
+
+#rhine-splash .rl-wb-sb-en {
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: var(--rl-muted);
+}
+
+#rhine-splash .rl-wb-sb-ticks {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 3px;
+}
+
+#rhine-splash .rl-wb-sb-ticks > i {
+  width: 11px;
+  height: 3px;
+  background: var(--rl-line-strong);
+  opacity: 0.45;
+}
+
+#rhine-splash .rl-wb-sb-ticks > i.is-on { background: var(--rl-accent); opacity: 0.45; }
+#rhine-splash .rl-wb-sb-ticks > i.is-now { background: var(--rl-accent); opacity: 1; }
+
+#rhine-splash.is-playing .rl-wb-stagebar {
+  animation: rl-fade calc(420 * var(--t)) var(--e-out) calc(260 * var(--t)) both;
+}
+
+/* ------------------------------------------------------------ 布局对齐 */
+
+/* 阶段条与顶部中央注册刻度（rl-reg--a，top:58px 居中）重叠，挪开 */
+#rhine-splash .rl-reg--a { top: 96px; }
+
+/* 上游标题列实测 464px；品牌名更短会让白底标题块变窄、把第 5 个模块方块
+   挤出面板。钉同一宽度，面板宽度与徽记位置跟上游逐像素对齐。 */
+#rhine-splash .rl-text { min-width: 464px; }
+
+@media (max-width: 1180px) {
+  #rhine-splash .rl-status em.rl-cn { display: none; }
+}
+
+@media (max-width: 980px) {
+  #rhine-splash .rl-wb-stagebar { display: none; }
+}
+
+/* 注入宿主时兜底：不吃宿主的鼠标事件，退出后不留痕迹 */
+#rhine-splash { pointer-events: auto; }
+
+/* ================= 性能层 =================
+ *
+ * 实测基线（Chrome 1600×900 / CPU 4× 降速模拟宿主启动期抢主线程）：
+ *   4.42s 窗口里 61 帧、p50 75ms、52 帧超过 50ms；样式重算 3180ms。
+ * 三个原因，逐个换掉：
+ *   ① 每帧在 :root 上写 --rl-p / --rl-q —— 自定义属性可继承，
+ *      写在根上等于整棵子树（87 条动画规则、上百个节点）全部重算；
+ *   ② 连接条用 width / left 每帧改，每帧触发布局；
+ *   ③ 面板 backdrop-filter 要对身后内容做 10px 模糊，而身后还在动。
+ */
+
+#rhine-splash {
+  /* 独占合成层 + 容器隔离：宿主界面在后面怎么重排重绘，都不波及我们。
+     不用 contain: paint，避免把 beyond-viewport 的光圈/舱门裁掉。 */
+  contain: layout style;
+  transform: translateZ(0);
+}
+
+/* ① --rl-p 现在写在 .rl-prog-bar 上（见 splash.wb.js），
+      重算范围从"整棵树"缩到"一条填充"。 */
+#rhine-splash .rl-prog-bar > i {
+  transform: scaleX(var(--rl-p, 0));
+  will-change: transform;
+}
+
+/* ② 填充：width 每帧改 → clip-path（只重绘不重排），渐变保留原始尺寸，观感不变 */
+#rhine-splash .rl-bar-fill {
+  width: 100% !important;
+  clip-path: inset(0 calc((1 - var(--rl-q, 0)) * 100%) 0 0);
+}
+
+/* ② 读头：left 每帧改 → transform；--rl-bar-w 是挂载时量一次的轨道宽度 */
+#rhine-splash .rl-bar-head {
+  left: 0 !important;
+  transform: translateX(calc(var(--rl-q, 0) * var(--rl-bar-w, 0px)));
+  will-change: transform;
+}
+
+/* ③ 静态时几乎看不出来，但它每帧要对身后一整块做模糊 */
+#rhine-splash .rl-glass {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* 退场光圈：全屏 SVG 多边形 + drop-shadow，且每帧在放大 —— 等于每帧对整屏
+   重新栅格化一遍阴影。实测退场段（3.3~4.5s）的尖峰就出在这里。
+   去掉阴影、把描边加粗一点补回存在感，观感差别很小。 */
+#rhine-splash .rl-iris-ring {
+  filter: none !important;
+  stroke-width: 2.6;
+}
+
+/* 逐字落位 / 样本窗对焦原本带 blur(5~6px)：每个字符一个合成层、每帧重新栅格化。
+   在 4.5 秒的动画里，这点模糊看不出来，代价却是实打实的。 */
+@keyframes rl-char {
+  from { opacity: 0; transform: translateY(0.3em); }
+}
+
+@keyframes rl-focus {
+  from { opacity: 0; transform: scale(0.86); }
+}
+
+/* 既然不再用 filter，就别让它留在 will-change 里占一层纹理 */
+#rhine-splash .rl-ch { will-change: transform, opacity; }
+
+/* ---------- 自适应降级 is-lite ----------
+ *
+ * 宿主启动时会和我们抢渲染主线程，不同机器上到底卡不卡差别很大。
+ * 所以不写死：播放头 400ms 内量一遍帧间隔，p95 超过 34ms 才切到 is-lite，
+ * 只去掉"最费绘制"的装饰层，主构图（徽记 / 标题板 / 阶段条 / 方块）一样不少。
+ */
+
+/* 点阵场：74vw 的位图 + 渐变蒙版 + 每帧位移。降级后保留静态底纹，去掉位移和蒙版 */
+#rhine-splash.is-lite .rl-field {
+  animation: none !important;
+  mask-image: none;
+  -webkit-mask-image: none;
+  opacity: 0.55;
+}
+
+/* 大字水印：整幅宽的描边文字，重绘成本高。降级后只留很淡的填充 */
+#rhine-splash.is-lite .rl-watermark {
+  -webkit-text-stroke: 0;
+  color: var(--rl-line-strong);
+  opacity: 0.14;
+}
+
+/* 警示斜纹：每帧改 background-position，纯重绘 */
+#rhine-splash.is-lite .rl-hazard { animation: none !important; }
+
+/* 逐字落位：去掉位移缓动，直接淡入 */
+#rhine-splash.is-lite .rl-ch {
+  animation-name: rl-fade !important;
+  will-change: opacity;
+}
+
+/* 外环长转：96 秒一圈，看不出价值，先停 */
+#rhine-splash.is-lite .rl-orbit--2 { animation-play-state: paused; }

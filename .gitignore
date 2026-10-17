@@ -1,0 +1,7 @@
+# 运行时产物，不入库
+last-run.log
+
+# 系统垃圾
+Thumbs.db
+Desktop.ini
+.DS_Store

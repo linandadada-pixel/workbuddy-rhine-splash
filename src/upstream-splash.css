@@ -1,0 +1,1468 @@
+/*
+ * Rhine Lab style boot splash — styles.
+ *
+ * Everything is scoped under #rhine-splash so the shell's own stylesheets
+ * (loaded later) can neither reach in nor be affected. Base rules describe
+ * the *final* frame; keyframes animate *from* the hidden state with
+ * `animation-fill-mode: both`, so reduced motion simply drops the
+ * animations. Timings are written as `calc(<ms> * var(--t))` against a
+ * 4.5 s timeline; --t scales with the configured duration.
+ *
+ * Act A (≈0.25–1.6 s): access check — "PERMISSION AUTHORIZED".
+ * Act B (≈1.6–3.7 s): welcome lockup, emblem, module tiles.
+ * Exit  (≈3.7–4.5 s): stage fades, seam opens, doors part.
+ */
+
+#rhine-splash {
+  --rl-k: 1;
+  --t: calc(var(--rl-k) * 1ms);
+  --rl-p: 0;
+  --rl-accent: #e46f24;
+  --rl-signal: #a5c22a;
+  --rl-bg: #edece8;
+  --rl-ink: #141414;
+  --rl-muted: #8b8a85;
+  --rl-line: rgba(20, 20, 20, 0.13);
+  --rl-line-strong: rgba(20, 20, 20, 0.4);
+  --rl-dot: rgba(20, 20, 20, 0.09);
+  --rl-hex: rgba(20, 20, 20, 0.06);
+  --rl-glass: rgba(237, 236, 232, 0.6);
+  --rl-accent-ink: color-mix(in srgb, var(--rl-accent) 78%, #000);
+  --rl-vignette: rgba(20, 20, 20, 0.045);
+  --rl-img-bars: var(--rl-img-bars-light, none);
+  --rl-sans: "Montserrat", "Helvetica Neue", "PingFang SC", "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  --rl-cond: "DIN Condensed", "Bahnschrift", "Roboto Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --rl-mono: "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --B: 1600; /* act B start, in timeline ms */
+  --G: 1250; /* grant beat: AUTHORIZED has resolved */
+  --R: 3300; /* ready beat: every meter has landed */
+  --beat: 1.2s; /* tempo for every idle loop */
+  --e-out: cubic-bezier(.16, 1, .3, 1);
+  --e-io: cubic-bezier(.65, 0, .35, 1);
+  --e-in: cubic-bezier(.7, 0, .84, 0);
+  --e-pop: cubic-bezier(.34, 1.56, .64, 1);
+
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  overflow: hidden;
+  color: var(--rl-ink);
+  font-family: var(--rl-sans);
+  line-height: 1.2;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-font-smoothing: antialiased;
+  contain: strict;
+}
+
+#rhine-splash[data-theme="dark"] {
+  --rl-accent: #f0893e;
+  --rl-signal: #c8e639;
+  --rl-bg: #151517;
+  --rl-ink: #ecebe7;
+  --rl-muted: #8a8986;
+  --rl-line: rgba(236, 235, 231, 0.11);
+  --rl-line-strong: rgba(236, 235, 231, 0.36);
+  --rl-dot: rgba(236, 235, 231, 0.06);
+  --rl-hex: rgba(236, 235, 231, 0.05);
+  --rl-glass: rgba(21, 21, 23, 0.55);
+  --rl-accent-ink: var(--rl-accent);
+  --rl-vignette: rgba(0, 0, 0, 0.35);
+  --rl-img-bars: var(--rl-img-bars-dark, none);
+}
+
+#rhine-splash *,
+#rhine-splash *::before,
+#rhine-splash *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+#rhine-splash i {
+  display: block;
+  font-style: normal;
+}
+
+#rhine-splash b { font-weight: 800; }
+
+/* ------------------------------------------------------------ backdrop */
+
+#rhine-splash .rl-door {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  will-change: transform;
+}
+
+#rhine-splash .rl-door--top { top: 0; }
+#rhine-splash .rl-door--bottom { bottom: 0; }
+
+/* Each door paints a full-window backdrop clipped to its half, so the dot
+   grid stays continuous across the seam. */
+#rhine-splash .rl-door::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 200%;
+  background-color: var(--rl-bg);
+  background-image:
+    radial-gradient(ellipse at 50% 46%, transparent 52%, var(--rl-vignette) 100%),
+    radial-gradient(var(--rl-dot) 1px, transparent 1.3px);
+  background-size: 100% 100%, 22px 22px;
+  background-position: 0 0, 11px 11px;
+}
+
+#rhine-splash .rl-door--top::before { top: 0; }
+#rhine-splash .rl-door--bottom::before { bottom: 0; }
+
+/* Accent edge on each door's inner side, shown only while the doors part. */
+#rhine-splash .rl-door::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--rl-accent);
+  opacity: 0;
+}
+
+#rhine-splash .rl-door--top::after { bottom: 0; }
+#rhine-splash .rl-door--bottom::after { top: 0; }
+
+#rhine-splash .rl-seam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 1px);
+  height: 2px;
+  background: var(--rl-accent);
+  box-shadow: 0 0 14px 1px var(--rl-accent);
+  transform: scaleX(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#rhine-splash .rl-stage {
+  position: absolute;
+  inset: 0;
+}
+
+#rhine-splash:not(.is-playing) .rl-stage { visibility: hidden; }
+
+#rhine-splash .rl-drag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  z-index: 3;
+  -webkit-app-region: drag;
+}
+
+/* Rendered slat field (assets/bars-*.jpg, inlined by the host). */
+#rhine-splash .rl-field {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 74vw;
+  background: var(--rl-img-bars) right center / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 38%);
+  mask-image: linear-gradient(to right, transparent, #000 38%);
+}
+
+#rhine-splash .rl-watermark {
+  position: absolute;
+  right: -1vw;
+  bottom: 1vh;
+  font: 800 13vw/0.8 var(--rl-sans);
+  letter-spacing: -0.02em;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--rl-line-strong);
+  opacity: 0.28;
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-orbit {
+  position: absolute;
+  border-radius: 50%;
+}
+
+#rhine-splash .rl-orbit--1 {
+  width: 118vmin;
+  height: 118vmin;
+  right: -46vmin;
+  top: -36vmin;
+  border: 1px solid var(--rl-line);
+}
+
+#rhine-splash .rl-orbit--2 {
+  width: 76vmin;
+  height: 76vmin;
+  right: -22vmin;
+  top: 10vmin;
+  border: 1.5px solid transparent;
+  border-top-color: var(--rl-line-strong);
+  border-left-color: var(--rl-line-strong);
+}
+
+#rhine-splash .rl-orbit--2::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -4.5px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--rl-accent);
+}
+
+/* ------------------------------------------------------------ HUD frame */
+
+#rhine-splash .rl-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 0 solid var(--rl-line-strong);
+}
+
+#rhine-splash .rl-corner--tl { top: 52px; left: 24px; border-top-width: 1px; border-left-width: 1px; --dx: -8px; --dy: -8px; }
+#rhine-splash .rl-corner--tr { top: 52px; right: 24px; border-top-width: 1px; border-right-width: 1px; --dx: 8px; --dy: -8px; }
+#rhine-splash .rl-corner--bl { bottom: 24px; left: 24px; border-bottom-width: 1px; border-left-width: 1px; --dx: -8px; --dy: 8px; }
+#rhine-splash .rl-corner--br { bottom: 24px; right: 24px; border-bottom-width: 1px; border-right-width: 1px; --dx: 8px; --dy: 8px; }
+
+/* Registration marks. */
+#rhine-splash .rl-reg {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+}
+
+#rhine-splash .rl-reg::before,
+#rhine-splash .rl-reg::after {
+  content: "";
+  position: absolute;
+  background: var(--rl-line-strong);
+}
+
+#rhine-splash .rl-reg::before { left: 6px; top: 0; width: 1px; height: 13px; }
+#rhine-splash .rl-reg::after { top: 6px; left: 0; height: 1px; width: 13px; }
+#rhine-splash .rl-reg--a { top: 58px; left: 50%; }
+#rhine-splash .rl-reg--b { bottom: 30px; left: 34%; }
+#rhine-splash .rl-reg--c { top: 50%; right: 18px; }
+
+#rhine-splash .rl-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  padding: 0 28px 0 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--rl-line);
+  font: 500 10px/1 var(--rl-mono);
+  letter-spacing: 0.18em;
+  color: var(--rl-muted);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-top-l,
+#rhine-splash .rl-top-r {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#rhine-splash .rl-status { display: inline-grid; color: var(--rl-ink); }
+#rhine-splash .rl-status > span { grid-area: 1 / 1; }
+#rhine-splash .rl-status-a,
+#rhine-splash .rl-status-b { opacity: 0; }
+#rhine-splash .rl-dim { opacity: 0.7; letter-spacing: 0.08em; }
+#rhine-splash .rl-code { color: var(--rl-ink); }
+#rhine-splash .rl-clock { font-variant-numeric: tabular-nums; }
+
+#rhine-splash .rl-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rl-ink);
+}
+
+#rhine-splash .rl-live > i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rl-signal);
+  box-shadow: 0 0 6px var(--rl-signal);
+}
+
+#rhine-splash .rl-sq {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--rl-accent);
+  flex: none;
+}
+
+/* Corporate lockup, top left. */
+#rhine-splash .rl-lockup {
+  position: absolute;
+  top: 64px;
+  left: 72px;
+  color: var(--rl-ink);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-lk-1 { font: 800 15px/1.05 var(--rl-sans); letter-spacing: 0.02em; }
+#rhine-splash .rl-lk-2 { margin-top: 3px; font: 600 6.5px/1.2 var(--rl-sans); letter-spacing: 0.08em; }
+#rhine-splash .rl-lk-3 { margin-top: 2px; font: 300 15px/1.05 var(--rl-sans); letter-spacing: 0.04em; }
+#rhine-splash .rl-lk-3 b { margin-left: 0.25em; }
+
+/* Index rail, left edge. */
+#rhine-splash .rl-rail {
+  position: absolute;
+  left: 40px;
+  top: 150px;
+  bottom: 176px;
+  width: 1px;
+}
+
+#rhine-splash .rl-rail-line {
+  position: absolute;
+  inset: 0;
+  background: var(--rl-line-strong);
+  transform-origin: center top;
+}
+
+#rhine-splash .rl-rail-sig {
+  position: absolute;
+  left: -2.5px;
+  top: -14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rl-signal);
+}
+
+#rhine-splash .rl-rail-item {
+  position: absolute;
+  left: 0;
+  top: calc(var(--i) * 25%);
+  transform: translateY(-50%);
+  padding-left: 12px;
+  font: 500 8.5px/1 var(--rl-mono);
+  letter-spacing: 0.14em;
+  color: var(--rl-ink);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-rail-mk {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  background: var(--rl-ink);
+}
+
+#rhine-splash .rl-rail-no { margin-right: 6px; color: var(--rl-muted); }
+
+#rhine-splash .rl-rail-bar {
+  width: 64px;
+  height: 2px;
+  margin-top: 5px;
+  background: var(--rl-ink);
+  transform-origin: left center;
+}
+
+/* ------------------------------------------------------- act A: access */
+
+#rhine-splash .rl-access {
+  position: absolute;
+  inset: 44px 0 0;
+  padding-bottom: 40px; /* same optical centre as act B */
+  display: grid;
+  place-items: center;
+  opacity: 0;
+}
+
+#rhine-splash .rl-access-ring {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 20px);
+  width: 240px;
+  height: 240px;
+  margin: -120px 0 0 -120px;
+  overflow: visible;
+  fill: none;
+}
+
+#rhine-splash .rl-ar-faint { stroke: var(--rl-line); stroke-width: 1; }
+#rhine-splash .rl-ar-arcs { transform-box: view-box; transform-origin: 120px 120px; }
+#rhine-splash .rl-ar-arcs circle { stroke: var(--rl-ink); stroke-width: 1.3; }
+
+#rhine-splash .rl-access-text {
+  position: relative;
+  margin-right: -0.5em;
+  font: 300 clamp(14px, 1.6vw, 19px)/1 var(--rl-sans);
+  letter-spacing: 0.5em;
+  color: var(--rl-ink);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-ac { display: inline-block; min-width: 0.55em; text-align: center; }
+#rhine-splash .rl-ac.is-raw { color: var(--rl-muted); }
+
+#rhine-splash .rl-access-dot {
+  position: absolute;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--rl-accent);
+}
+
+#rhine-splash .rl-access-dot--t { top: calc(50% - 70px); }
+#rhine-splash .rl-access-dot--b { top: calc(50% + 24px); }
+
+#rhine-splash .rl-access-sub {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 54px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 9px/1 var(--rl-mono);
+  letter-spacing: 0.22em;
+  color: var(--rl-muted);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-access-sub > i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rl-ink);
+}
+
+/* -------------------------------------------------- act B: centrepiece */
+
+#rhine-splash .rl-center {
+  position: absolute;
+  inset: 44px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 44px;
+  padding: 0 32px 40px;
+}
+
+#rhine-splash .rl-emblem {
+  position: relative;
+  flex: none;
+  width: 184px;
+  height: 184px;
+  color: var(--rl-accent);
+}
+
+#rhine-splash .rl-e {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: butt;
+}
+
+#rhine-splash .rl-e-ticks,
+#rhine-splash .rl-e-arcs,
+#rhine-splash .rl-e-sweep {
+  transform-box: view-box;
+  transform-origin: 110px 110px;
+}
+
+#rhine-splash .rl-e-ticks circle { stroke: var(--rl-line-strong); }
+#rhine-splash .rl-e-ticks .rl-e-major { stroke: var(--rl-ink); opacity: 0.55; }
+#rhine-splash .rl-e-ring { stroke: var(--rl-ink); stroke-width: 1.2; stroke-dasharray: 1; stroke-dashoffset: 0; }
+#rhine-splash .rl-e-arc { stroke: var(--rl-accent); stroke-width: 3.6; }
+#rhine-splash .rl-e-arc--b { opacity: 0.55; }
+#rhine-splash .rl-e-sweep { opacity: 0; }
+#rhine-splash .rl-e-cross path { stroke: var(--rl-line-strong); stroke-width: 1; }
+#rhine-splash .rl-e-hex { stroke: var(--rl-ink); stroke-width: 1.5; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+#rhine-splash .rl-e-bond { stroke: var(--rl-ink); stroke-width: 1.1; opacity: 0.7; }
+#rhine-splash .rl-e-node { fill: var(--rl-bg); stroke: var(--rl-ink); stroke-width: 1.3; transform-box: fill-box; transform-origin: center; }
+#rhine-splash .rl-e-core { fill: var(--rl-accent); transform-box: fill-box; transform-origin: center; }
+#rhine-splash .rl-e-label text {
+  fill: var(--rl-muted);
+  font: 500 7px var(--rl-mono);
+  letter-spacing: 0.2em;
+  text-anchor: middle;
+}
+
+/* Guide lines reach out from the emblem to the window edges. */
+#rhine-splash .rl-gl {
+  position: absolute;
+  background: var(--rl-line);
+}
+
+#rhine-splash .rl-gl--h {
+  top: 50%;
+  right: calc(100% + 16px);
+  width: 100vw;
+  height: 1px;
+  transform-origin: right center;
+}
+
+#rhine-splash .rl-gl--h::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 1px;
+  height: 7px;
+  background: var(--rl-line-strong);
+}
+
+#rhine-splash .rl-gl--v1,
+#rhine-splash .rl-gl--v2 {
+  left: 50%;
+  width: 1px;
+  height: 100vh;
+}
+
+#rhine-splash .rl-gl--v1 { bottom: calc(100% + 16px); transform-origin: center bottom; }
+#rhine-splash .rl-gl--v2 { top: calc(100% + 16px); transform-origin: center top; }
+
+/* Act A dissolves into this accent hairline on the emblem's axis, which
+   hands over to the emblem's own guide lines. */
+#rhine-splash .rl-handoff {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% - 20px);
+  height: 1px;
+  background: var(--rl-accent);
+  box-shadow: 0 0 8px var(--rl-accent);
+  transform: scaleX(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#rhine-splash .rl-divider {
+  flex: none;
+  width: 1px;
+  height: 168px;
+  background: var(--rl-line-strong);
+}
+
+#rhine-splash .rl-text {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+/* Frosted glass panel behind the lockup, with corner screws. */
+#rhine-splash .rl-panel {
+  position: absolute;
+  inset: -26px -30px -24px -26px;
+  z-index: -1;
+  background: var(--rl-glass);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  backdrop-filter: blur(10px) saturate(1.1);
+  border: 1px solid var(--rl-line);
+}
+
+#rhine-splash .rl-panel > i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--rl-line-strong);
+  border-radius: 50%;
+}
+
+#rhine-splash .rl-panel > i:nth-child(1) { top: 7px; left: 7px; }
+#rhine-splash .rl-panel > i:nth-child(2) { top: 7px; right: 7px; }
+#rhine-splash .rl-panel > i:nth-child(3) { bottom: 7px; left: 7px; }
+#rhine-splash .rl-panel > i:nth-child(4) { bottom: 7px; right: 7px; }
+
+#rhine-splash .rl-panel-id {
+  position: absolute;
+  top: 8px;
+  right: 18px;
+  font: 500 7px/1 var(--rl-mono);
+  letter-spacing: 0.22em;
+  color: var(--rl-muted);
+}
+
+#rhine-splash .rl-over {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 500 9.5px/1 var(--rl-mono);
+  letter-spacing: 0.22em;
+  color: var(--rl-accent-ink);
+}
+
+#rhine-splash .rl-w {
+  font: 800 clamp(14px, 1.5vw, 19px)/1 var(--rl-sans);
+  letter-spacing: 0.08em;
+  color: var(--rl-ink);
+}
+
+#rhine-splash .rl-w1 { margin: 14px 0 7px; }
+#rhine-splash .rl-w2 { margin: 7px 0 0; }
+
+#rhine-splash .rl-title {
+  display: inline-flex;
+  padding: 0.2em 0.34em 0.16em 0.4em;
+  background: var(--rl-ink);
+  color: var(--rl-bg);
+  font: 800 clamp(24px, 3vw, 40px)/1 var(--rl-sans);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-ch {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}
+
+/* Link meter under INTERNAL TERMINAL: a ruled track whose orange fill is
+   driven by --rl-q (session link progress, set per frame by splash.js),
+   with a riding read head and a glint that sweeps on the --beat. */
+#rhine-splash .rl-bar {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  margin-top: 16px;
+  background: var(--rl-line);
+}
+
+#rhine-splash .rl-bar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 5px;
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--rl-line-strong) 0 1px, transparent 1px 8px);
+  -webkit-mask-image: linear-gradient(90deg, #000 55%, transparent);
+  mask-image: linear-gradient(90deg, #000 55%, transparent);
+}
+
+#rhine-splash .rl-bar::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -4px;
+  width: 1px;
+  height: 10px;
+  background: var(--rl-ink);
+}
+
+#rhine-splash .rl-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--rl-q, 0) * 100%);
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--rl-accent) 30%, #fff), transparent) no-repeat,
+    var(--rl-accent);
+  background-size: 56px 100%, auto;
+  background-position: -56px 0, 0 0;
+}
+
+#rhine-splash .rl-bar-head {
+  position: absolute;
+  top: -3px;
+  left: calc(var(--rl-q, 0) * 100%);
+  width: 6px;
+  height: 8px;
+  margin-left: -3px;
+  background: var(--rl-ink);
+}
+
+#rhine-splash .rl-bar-head::before {
+  content: "";
+  position: absolute;
+  left: 2.5px;
+  bottom: calc(100% + 2px);
+  width: 1px;
+  height: 6px;
+  background: var(--rl-accent);
+}
+
+#rhine-splash .rl-bar-head::after {
+  content: "LINK";
+  position: absolute;
+  left: 7px;
+  bottom: calc(100% + 3px);
+  font: 600 6.5px/1 var(--rl-mono);
+  letter-spacing: 0.16em;
+  color: var(--rl-accent-ink);
+}
+
+#rhine-splash .rl-sub {
+  margin-top: 14px;
+  font: 400 10.5px/1.4 var(--rl-mono);
+  letter-spacing: 0.16em;
+  color: var(--rl-muted);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-caret {
+  display: inline-block;
+  width: 0.62em;
+  height: 1.05em;
+  margin-left: 4px;
+  vertical-align: -0.18em;
+  background: var(--rl-accent);
+}
+
+/* Module tiles: inverted squares with condensed abbreviations. */
+#rhine-splash .rl-tiles {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  perspective: 600px;
+}
+
+#rhine-splash .rl-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 62px;
+  height: 62px;
+  padding: 6px 6px 6px 7px;
+  background: var(--rl-ink);
+  color: var(--rl-bg);
+  overflow: hidden;
+  transform-origin: left center;
+}
+
+/* One condensed family for the abbreviation and its caption, so the label
+   reads as a single stamped plate; the index stays mono as metadata. */
+#rhine-splash .rl-tile-no { font: 500 6px/1 var(--rl-mono); letter-spacing: 0.08em; opacity: 0.6; }
+#rhine-splash .rl-tile-ab {
+  margin-top: 2px;
+  font: 700 25px/0.86 var(--rl-cond);
+  font-stretch: condensed;
+  letter-spacing: 0.02em;
+}
+#rhine-splash .rl-tile-cap {
+  font: 700 7px/1.05 var(--rl-cond);
+  font-stretch: condensed;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+  overflow-wrap: anywhere;
+}
+
+#rhine-splash .rl-tile--hot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: var(--rl-accent);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+/* ------------------------------------------------- specimen, top right */
+
+#rhine-splash .rl-specimen {
+  position: absolute;
+  top: 70px;
+  right: 56px;
+  display: grid;
+  grid-template-columns: auto 34px 112px;
+  align-items: start;
+  color: var(--rl-ink);
+}
+
+#rhine-splash .rl-spec-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-spec-label b { font: 800 13px/1 var(--rl-sans); letter-spacing: 0.04em; }
+#rhine-splash .rl-spec-label span { font: 500 7px/1 var(--rl-mono); letter-spacing: 0.16em; color: var(--rl-muted); }
+
+#rhine-splash .rl-spec-lead {
+  position: relative;
+  height: 1px;
+  margin: 7px 4px 0 6px;
+  background: var(--rl-line-strong);
+  transform-origin: left center;
+}
+
+#rhine-splash .rl-spec-lead::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  background: var(--rl-ink);
+}
+
+#rhine-splash .rl-spec-view {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--rl-line-strong);
+  outline: 1px dashed var(--rl-line-strong);
+  outline-offset: 5px;
+  background:
+    var(--rl-img-specimen, radial-gradient(circle at 30% 35%, #c9c9c9 0 13%, transparent 14%) ,
+    radial-gradient(circle at 66% 58%, #a9a9a9 0 17%, transparent 18%)),
+    #4a4a4a;
+  background-size: 170%;
+  background-position: 42% 46%;
+}
+
+#rhine-splash .rl-spec-view::before,
+#rhine-splash .rl-spec-view::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+#rhine-splash .rl-spec-view::before { left: 50%; top: 18%; bottom: 18%; width: 1px; }
+#rhine-splash .rl-spec-view::after { top: 50%; left: 18%; right: 18%; height: 1px; }
+
+#rhine-splash .rl-spec-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--rl-accent);
+  box-shadow: 0 0 8px var(--rl-accent);
+  opacity: 0;
+}
+
+#rhine-splash .rl-spec-data {
+  grid-column: 1 / -1;
+  justify-self: end;
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 5px;
+  border-top: 1px solid var(--rl-line-strong);
+  font: 500 7.5px/1 var(--rl-mono);
+  letter-spacing: 0.1em;
+  color: var(--rl-muted);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-spec-scale {
+  grid-column: 1 / -1;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font: 500 7.5px/1 var(--rl-mono);
+  color: var(--rl-ink);
+}
+
+#rhine-splash .rl-spec-scale > i {
+  width: 36px;
+  height: 4px;
+  border: 1px solid var(--rl-ink);
+  border-top: 0;
+}
+
+/* --------------------------------------------------- file tag, bottom left */
+
+#rhine-splash .rl-file {
+  position: absolute;
+  left: 72px;
+  bottom: 46px;
+  width: 232px;
+}
+
+#rhine-splash .rl-file-lead {
+  position: absolute;
+  right: calc(100% + 6px);
+  top: 9px;
+  width: 66px;
+  height: 1px;
+  background: var(--rl-line-strong);
+  transform-origin: left center;
+}
+
+#rhine-splash .rl-file-lead::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  background: var(--rl-ink);
+}
+
+#rhine-splash .rl-file-box {
+  padding: 1px 0 1px 10px;
+  border-left: 3px solid var(--rl-ink);
+  font: 500 8.5px/1.75 var(--rl-mono);
+  letter-spacing: 0.12em;
+  color: var(--rl-muted);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-file-box b { color: var(--rl-ink); font-weight: 700; }
+
+#rhine-splash .rl-redact {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+#rhine-splash .rl-redact > i {
+  width: var(--w);
+  height: 6px;
+  background: var(--rl-ink);
+  transform-origin: left center;
+}
+
+#rhine-splash .rl-redact > i.rl-redact--h {
+  background: repeating-linear-gradient(-45deg, var(--rl-ink) 0 2px, transparent 2px 5px);
+}
+
+#rhine-splash .rl-code-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#rhine-splash .rl-barcode {
+  display: block;
+  width: 148px;
+  height: 20px;
+  fill: var(--rl-ink);
+}
+
+#rhine-splash .rl-code-tx { font: 500 7.5px/1 var(--rl-mono); letter-spacing: 0.12em; color: var(--rl-muted); }
+
+/* ---------------------------------------------- caution + progress, bottom right */
+
+#rhine-splash .rl-foot-r {
+  position: absolute;
+  right: 56px;
+  bottom: 40px;
+  width: 232px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+#rhine-splash .rl-caution {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 7.5px/1 var(--rl-mono);
+  letter-spacing: 0.14em;
+  color: var(--rl-ink);
+  white-space: nowrap;
+}
+
+#rhine-splash .rl-caution > i {
+  flex: none;
+  width: 30px;
+  height: 10px;
+  background: repeating-linear-gradient(-45deg, var(--rl-accent) 0 4px, var(--rl-ink) 4px 8px);
+}
+
+#rhine-splash .rl-prog-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--rl-mono);
+  color: var(--rl-muted);
+}
+
+#rhine-splash .rl-prog-label {
+  flex: 1;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+}
+
+#rhine-splash .rl-pct {
+  font: 200 30px/1 var(--rl-sans);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--rl-ink);
+}
+
+#rhine-splash .rl-pct-unit { font-size: 11px; }
+
+#rhine-splash .rl-prog-bar {
+  position: relative;
+  height: 2px;
+  margin-top: 10px;
+  background: var(--rl-line);
+}
+
+#rhine-splash .rl-prog-bar > i {
+  position: absolute;
+  inset: 0;
+  background: var(--rl-accent);
+  transform: scaleX(var(--rl-p));
+  transform-origin: left center;
+}
+
+#rhine-splash .rl-prog-ticks {
+  height: 5px;
+  margin-top: 4px;
+  background-image: repeating-linear-gradient(90deg, var(--rl-line-strong) 0 1px, transparent 1px 11.5px);
+  opacity: 0.7;
+}
+
+#rhine-splash .rl-powered {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font: 600 8px/1 var(--rl-sans);
+  letter-spacing: 0.12em;
+  color: var(--rl-muted);
+}
+
+#rhine-splash .rl-powered b { color: var(--rl-ink); }
+#rhine-splash .rl-powered > i { width: 22px; height: 2px; margin-left: 6px; background: var(--rl-ink); }
+
+#rhine-splash .rl-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  font: 400 9.5px/1 var(--rl-mono);
+  letter-spacing: 0.2em;
+  color: var(--rl-muted);
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+/* ------------------------------------------------------------ timeline
+ *
+ * Beats, in ms on the 4.5 s timeline (scaled by --t):
+ *   frame   0–500    top bar, corners, rail spine, lockup
+ *   act A   250–1450 access check; G (--G) = grant beat: status flips,
+ *                    rail 02 lights, ID CONFIRMED, the two dots ping
+ *   sweep   600–1300 peripheral HUD boots clockwise:
+ *                    specimen → caution/progress → file tag
+ *   act B   1600     emblem, panel, lockup; tiles 2550 (rail 03)
+ *   handoff 1400     act A dissolves into an accent hairline on the axis
+ *   ready   3300     (--R) TERMINAL READY, corners lock, rail 05, meters 97%
+ * One easing family: --e-out enters, --e-io draws and wipes, --e-in
+ * leaves, --e-pop pops. Idle loops run on multiples of --beat so nothing
+ * flickers out of step.
+ */
+
+/* backdrop */
+#rhine-splash.is-playing .rl-field { animation: rl-field-in calc(2600 * var(--t)) var(--e-out) both; }
+#rhine-splash.is-playing .rl-watermark { animation: rl-drift calc(1800 * var(--t)) var(--e-out) calc(400 * var(--t)) both; }
+#rhine-splash.is-playing .rl-orbit--1 { animation: rl-fade calc(900 * var(--t)) var(--e-out) calc(200 * var(--t)) both; }
+#rhine-splash.is-playing .rl-orbit--2 {
+  animation:
+    rl-orbit-in calc(1600 * var(--t)) var(--e-out) calc(200 * var(--t)) both,
+    rl-spin calc(var(--beat) * 80) linear calc(1800 * var(--t)) infinite;
+}
+
+/* frame */
+#rhine-splash.is-playing .rl-top { animation: rl-drop calc(420 * var(--t)) var(--e-out) calc(100 * var(--t)) both; }
+#rhine-splash.is-playing .rl-status-a {
+  animation:
+    rl-in calc(200 * var(--t)) linear calc(150 * var(--t)) both,
+    rl-out calc(160 * var(--t)) linear calc(var(--G) * var(--t)) forwards;
+}
+#rhine-splash.is-playing .rl-status-b {
+  animation:
+    rl-in calc(200 * var(--t)) linear calc((var(--G) + 40) * var(--t)) both,
+    rl-out calc(160 * var(--t)) linear calc(var(--R) * var(--t)) forwards;
+}
+#rhine-splash.is-playing .rl-status-c { animation: rl-fade calc(200 * var(--t)) linear calc((var(--R) + 40) * var(--t)) both; }
+#rhine-splash.is-playing .rl-live > i { animation: rl-pulse calc(var(--beat) * 2) ease-in-out infinite; }
+#rhine-splash.is-playing .rl-corner {
+  animation:
+    rl-corner calc(520 * var(--t)) var(--e-out) calc(160 * var(--t)) both,
+    rl-lock calc(700 * var(--t)) var(--e-out) calc(var(--R) * var(--t));
+}
+#rhine-splash.is-playing .rl-reg { animation: rl-fade calc(400 * var(--t)) var(--e-out) calc(300 * var(--t)) both; }
+#rhine-splash.is-playing .rl-lk-1 { animation: rl-slide calc(420 * var(--t)) var(--e-out) calc(180 * var(--t)) both; }
+#rhine-splash.is-playing .rl-lk-2 { animation: rl-slide calc(420 * var(--t)) var(--e-out) calc(230 * var(--t)) both; }
+#rhine-splash.is-playing .rl-lk-3 { animation: rl-slide calc(420 * var(--t)) var(--e-out) calc(280 * var(--t)) both; }
+
+/* index rail: items light at their semantic beat (--at, set per item) */
+#rhine-splash.is-playing .rl-rail-line { animation: rl-grow-y calc(900 * var(--t)) var(--e-io) calc(250 * var(--t)) both; }
+#rhine-splash.is-playing .rl-rail-sig {
+  animation:
+    rl-fade calc(300 * var(--t)) var(--e-out) calc(300 * var(--t)) both,
+    rl-pulse calc(var(--beat) * 2) ease-in-out calc(600 * var(--t)) infinite;
+}
+#rhine-splash.is-playing .rl-rail-item { animation: rl-dim-in calc(420 * var(--t)) var(--e-out) calc((350 + var(--i) * 70) * var(--t)) both; }
+#rhine-splash.is-playing .rl-rail-tx { animation: rl-ink-in calc(260 * var(--t)) var(--e-out) calc(var(--at) * var(--t)) both; }
+#rhine-splash.is-playing .rl-rail-mk { animation: rl-mk-hot calc(900 * var(--t)) var(--e-out) calc(var(--at) * var(--t)) both; }
+#rhine-splash.is-playing .rl-rail-bar { animation: rl-grow-x calc(420 * var(--t)) var(--e-io) calc(var(--at) * var(--t)) both; }
+
+/* act A */
+#rhine-splash.is-playing .rl-access {
+  animation:
+    rl-in calc(300 * var(--t)) var(--e-out) calc(250 * var(--t)) both,
+    rl-out calc(240 * var(--t)) var(--e-in) calc(1450 * var(--t)) forwards;
+}
+#rhine-splash.is-playing .rl-access-text { animation: rl-spread calc(280 * var(--t)) var(--e-in) calc(1420 * var(--t)) both; }
+#rhine-splash.is-playing .rl-handoff { animation: rl-handoff calc(760 * var(--t)) var(--e-io) calc(1400 * var(--t)) both; }
+#rhine-splash.is-playing .rl-ar-arcs { animation: rl-arc-turn calc(1500 * var(--t)) var(--e-io) calc(250 * var(--t)) both; }
+#rhine-splash.is-playing .rl-ar-faint { animation: rl-fade calc(500 * var(--t)) var(--e-out) calc(300 * var(--t)) both; }
+#rhine-splash.is-playing .rl-access-dot {
+  animation:
+    rl-pop calc(360 * var(--t)) var(--e-pop) calc(480 * var(--t)) both,
+    rl-ping calc(520 * var(--t)) var(--e-out) calc(var(--G) * var(--t));
+}
+#rhine-splash.is-playing .rl-access-dot--b { animation-delay: calc(540 * var(--t)), calc((var(--G) + 60) * var(--t)); }
+#rhine-splash.is-playing .rl-ellipsis { animation: rl-blink calc(var(--beat) / 2) steps(1, end) infinite; }
+#rhine-splash.is-playing .rl-access-sub { animation: rl-rise calc(320 * var(--t)) var(--e-out) calc(var(--G) * var(--t)) both; }
+
+/* peripheral HUD sweep, clockwise from the top right */
+#rhine-splash.is-playing .rl-specimen { animation: rl-fade calc(400 * var(--t)) var(--e-out) calc(600 * var(--t)) both; }
+#rhine-splash.is-playing .rl-spec-view { animation: rl-focus calc(900 * var(--t)) var(--e-out) calc(640 * var(--t)) both; }
+#rhine-splash.is-playing .rl-spec-scan { animation: rl-scan calc(var(--beat) * 2) var(--e-io) calc(900 * var(--t)) infinite; }
+#rhine-splash.is-playing .rl-spec-lead { animation: rl-grow-x calc(360 * var(--t)) var(--e-io) calc(760 * var(--t)) both; }
+#rhine-splash.is-playing .rl-spec-data { animation: rl-slide-r calc(420 * var(--t)) var(--e-out) calc(840 * var(--t)) both; }
+#rhine-splash.is-playing .rl-spec-scale { animation: rl-fade calc(300 * var(--t)) var(--e-out) calc(920 * var(--t)) both; }
+
+#rhine-splash.is-playing .rl-caution { animation: rl-slide-r calc(420 * var(--t)) var(--e-out) calc(720 * var(--t)) both; }
+#rhine-splash.is-playing .rl-caution > i { animation: rl-hazard var(--beat) linear infinite; }
+#rhine-splash.is-playing .rl-prog { animation: rl-slide-r calc(420 * var(--t)) var(--e-out) calc(800 * var(--t)) both; }
+#rhine-splash.is-playing .rl-powered { animation: rl-slide-r calc(420 * var(--t)) var(--e-out) calc(880 * var(--t)) both; }
+
+#rhine-splash.is-playing .rl-file-lead { animation: rl-grow-x calc(480 * var(--t)) var(--e-io) calc(900 * var(--t)) both; }
+#rhine-splash.is-playing .rl-file-box { animation: rl-slide calc(420 * var(--t)) var(--e-out) calc(980 * var(--t)) both; }
+#rhine-splash.is-playing .rl-redact > i { animation: rl-grow-x calc(420 * var(--t)) var(--e-io) calc(1060 * var(--t)) both; }
+#rhine-splash.is-playing .rl-redact > i:nth-child(2) { animation-delay: calc(1120 * var(--t)); }
+#rhine-splash.is-playing .rl-redact > i:nth-child(3) { animation-delay: calc(1180 * var(--t)); }
+#rhine-splash.is-playing .rl-code-row { animation: rl-wipe calc(480 * var(--t)) var(--e-io) calc(1260 * var(--t)) both; }
+#rhine-splash.is-playing .rl-hint { animation: rl-hint calc(600 * var(--t)) var(--e-out) calc(1700 * var(--t)) both; }
+
+/* act B: emblem — ticks counter-rotate against the accent arcs */
+#rhine-splash.is-playing .rl-e-ring { animation: rl-draw calc(820 * var(--t)) var(--e-io) calc(var(--B) * var(--t)) both; }
+#rhine-splash.is-playing .rl-e-ticks {
+  animation:
+    rl-ticks-in calc(700 * var(--t)) var(--e-out) calc((var(--B) + 100) * var(--t)) both,
+    rl-spin-rev calc(var(--beat) * 40) linear calc((var(--B) + 800) * var(--t)) infinite;
+}
+#rhine-splash.is-playing .rl-e-hex { animation: rl-draw calc(760 * var(--t)) var(--e-io) calc((var(--B) + 200) * var(--t)) both; }
+#rhine-splash.is-playing .rl-e-cross { animation: rl-fade calc(400 * var(--t)) var(--e-out) calc((var(--B) + 350) * var(--t)) both; }
+#rhine-splash.is-playing .rl-e-arcs { animation: rl-spin calc(var(--beat) * 8) linear calc((var(--B) + 450) * var(--t)) infinite; }
+#rhine-splash.is-playing .rl-e-arc { animation: rl-arc calc(620 * var(--t)) var(--e-io) calc((var(--B) + 450) * var(--t)) both; }
+#rhine-splash.is-playing .rl-e-sweep { animation: rl-sweep calc(1500 * var(--t)) var(--e-io) calc((var(--B) + 550) * var(--t)) both; }
+#rhine-splash.is-playing .rl-e-bond { animation: rl-fade calc(300 * var(--t)) var(--e-out) calc((var(--B) + 700) * var(--t)) both; }
+#rhine-splash.is-playing .rl-e-node { animation: rl-pop calc(360 * var(--t)) var(--e-pop) calc((var(--B) + 720) * var(--t)) both; }
+#rhine-splash.is-playing .rl-e-node:nth-of-type(2) { animation-delay: calc((var(--B) + 800) * var(--t)); }
+#rhine-splash.is-playing .rl-e-node:nth-of-type(3) { animation-delay: calc((var(--B) + 880) * var(--t)); }
+#rhine-splash.is-playing .rl-e-core {
+  animation:
+    rl-pop calc(360 * var(--t)) var(--e-pop) calc((var(--B) + 940) * var(--t)) both,
+    rl-pulse calc(var(--beat) * 2) ease-in-out calc((var(--B) + 1400) * var(--t)) infinite;
+}
+#rhine-splash.is-playing .rl-e-label { animation: rl-fade calc(400 * var(--t)) var(--e-out) calc((var(--B) + 800) * var(--t)) both; }
+#rhine-splash.is-playing .rl-gl--h { animation: rl-grow-x calc(900 * var(--t)) var(--e-io) calc((var(--B) + 150) * var(--t)) both; }
+#rhine-splash.is-playing .rl-gl--v1,
+#rhine-splash.is-playing .rl-gl--v2 { animation: rl-grow-y calc(900 * var(--t)) var(--e-io) calc((var(--B) + 230) * var(--t)) both; }
+#rhine-splash.is-playing .rl-divider { animation: rl-grow-y calc(600 * var(--t)) var(--e-io) calc((var(--B) + 500) * var(--t)) both; }
+
+/* act B: lockup */
+#rhine-splash.is-playing .rl-panel { animation: rl-panel-in calc(520 * var(--t)) var(--e-io) calc((var(--B) + 200) * var(--t)) both; }
+#rhine-splash.is-playing .rl-over { animation: rl-slide calc(420 * var(--t)) var(--e-out) calc((var(--B) + 300) * var(--t)) both; }
+#rhine-splash.is-playing .rl-w1 { animation: rl-slide calc(420 * var(--t)) var(--e-out) calc((var(--B) + 360) * var(--t)) both; }
+#rhine-splash.is-playing .rl-title { animation: rl-wipe calc(380 * var(--t)) var(--e-io) calc((var(--B) + 420) * var(--t)) both; }
+#rhine-splash.is-playing .rl-ch { animation: rl-char calc(420 * var(--t)) var(--e-out) calc((var(--B) + 600 + var(--i) * 28) * var(--t)) both; }
+#rhine-splash.is-playing .rl-w2 { animation: rl-slide calc(420 * var(--t)) var(--e-out) calc((var(--B) + 720) * var(--t)) both; }
+#rhine-splash.is-playing .rl-bar { animation: rl-wipe-wide calc(520 * var(--t)) var(--e-io) calc((var(--B) + 800) * var(--t)) both; }
+#rhine-splash.is-playing .rl-bar-head { animation: rl-head-in calc(360 * var(--t)) var(--e-pop) calc((var(--B) + 900) * var(--t)) both; }
+#rhine-splash.is-playing .rl-bar-fill { animation: rl-glint calc(var(--beat) * 2) var(--e-io) calc((var(--B) + 950) * var(--t)) infinite; }
+#rhine-splash.is-playing .rl-sc { animation: rl-fade 1ms linear calc((var(--B) + 1000 + var(--i) * 12) * var(--t)) both; }
+#rhine-splash.is-playing .rl-caret {
+  animation:
+    rl-fade 1ms linear calc((var(--B) + 1000 + var(--n, 40) * 12) * var(--t)) both,
+    rl-blink var(--beat) steps(1, end) calc((var(--B) + 1000 + var(--n, 40) * 12) * var(--t)) infinite;
+}
+#rhine-splash.is-playing .rl-tile { animation: rl-tile-in calc(460 * var(--t)) var(--e-out) calc((var(--B) + 950 + var(--i) * 110) * var(--t)) both; }
+
+/* ---------------------------------------------------------------- exit */
+
+#rhine-splash.is-leaving { pointer-events: none; }
+#rhine-splash.is-leaving .rl-drag { -webkit-app-region: no-drag; }
+#rhine-splash[data-exit="doors"].is-leaving .rl-stage { animation: rl-stage-out 220ms var(--e-in) both; }
+#rhine-splash[data-exit="doors"].is-leaving .rl-seam { animation: rl-seam 380ms var(--e-io) 80ms both; }
+#rhine-splash[data-exit="doors"].is-leaving .rl-door::after { opacity: 1; }
+#rhine-splash[data-exit="doors"].is-reduced .rl-door::after { display: none; }
+#rhine-splash[data-exit="doors"].is-leaving .rl-door--top { animation: rl-door-up 540ms var(--e-io) 280ms both; }
+#rhine-splash[data-exit="doors"].is-leaving .rl-door--bottom { animation: rl-door-down 540ms var(--e-io) 280ms both; }
+#rhine-splash[data-exit="fade"].is-leaving { animation: rl-out 320ms var(--e-out) both; }
+
+#rhine-splash .rl-decode {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#rhine-splash .rl-slice {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: var(--rl-bg);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#rhine-splash .rl-slice,
+#rhine-splash .rl-slice * { animation: none !important; transition: none !important; }
+#rhine-splash .rl-slice .rl-stage { visibility: visible; }
+#rhine-splash[data-exit="glitch"].is-leaving .rl-slice {
+  text-shadow: 2px 0 rgba(255, 40, 90, .75), -2px 0 rgba(0, 210, 255, .75);
+}
+/* The outline watermark has transparent fill, so a shadow would paint the
+   whole glyph solid; keep it a bare outline. */
+#rhine-splash[data-exit="glitch"].is-leaving .rl-slice .rl-watermark { text-shadow: none; }
+
+#rhine-splash .rl-glitch-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 6;
+  background: var(--rl-accent);
+  box-shadow: 0 0 8px var(--rl-accent);
+  pointer-events: none;
+}
+
+#rhine-splash[data-exit="iris"].is-leaving {
+  clip-path: polygon(evenodd,
+    0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+    var(--rl-cx) calc(var(--rl-cy) - var(--rl-iris-s) * 100px),
+    calc(var(--rl-cx) + var(--rl-iris-s) * 86.6px) calc(var(--rl-cy) - var(--rl-iris-s) * 50px),
+    calc(var(--rl-cx) + var(--rl-iris-s) * 86.6px) calc(var(--rl-cy) + var(--rl-iris-s) * 50px),
+    var(--rl-cx) calc(var(--rl-cy) + var(--rl-iris-s) * 100px),
+    calc(var(--rl-cx) - var(--rl-iris-s) * 86.6px) calc(var(--rl-cy) + var(--rl-iris-s) * 50px),
+    calc(var(--rl-cx) - var(--rl-iris-s) * 86.6px) calc(var(--rl-cy) - var(--rl-iris-s) * 50px),
+    var(--rl-cx) calc(var(--rl-cy) - var(--rl-iris-s) * 100px), 0 0);
+  animation: rl-iris 760ms var(--e-io) 300ms both;
+}
+
+#rhine-splash .rl-iris-ring {
+  position: absolute;
+  left: var(--rl-cx);
+  top: var(--rl-cy);
+  width: 200px;
+  height: 200px;
+  margin: -100px 0 0 -100px;
+  z-index: 6;
+  overflow: visible;
+  fill: none;
+  stroke: var(--rl-accent);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px var(--rl-accent));
+  pointer-events: none;
+  transform: scale(var(--rl-iris-s));
+}
+
+#rhine-splash .rl-iris-ring polygon { vector-effect: non-scaling-stroke; }
+#rhine-splash .rl-iris-ring--b {
+  stroke-width: 1;
+  opacity: .6;
+  animation: rl-iris 760ms var(--e-io) 360ms both;
+}
+#rhine-splash[data-exit="iris"].is-leaving .rl-stage { animation: rl-out 320ms var(--e-in) 760ms both; }
+
+/* Iris prime (0–300 ms) guides the eye to where the aperture will open:
+   a spotlight dims the scene around the emblem, its guide lines turn
+   orange and retract into it, the hexagon charges and the emblem bumps,
+   and three hex pings ripple out of the centre. */
+#rhine-splash .rl-iris-spot {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: radial-gradient(circle at var(--rl-cx) var(--rl-cy),
+    transparent 0, transparent 118px,
+    color-mix(in srgb, var(--rl-bg) 80%, transparent) 250px);
+  pointer-events: none;
+  animation: rl-fade 260ms var(--e-out) both;
+}
+#rhine-splash[data-exit="iris"].is-leaving .rl-emblem {
+  z-index: 5;
+  animation: rl-iris-prime 320ms var(--e-out) both;
+}
+#rhine-splash[data-exit="iris"].is-leaving .rl-e-hex {
+  stroke: var(--rl-accent);
+  stroke-width: 2.6;
+  filter: drop-shadow(0 0 3px var(--rl-accent));
+}
+#rhine-splash[data-exit="iris"].is-leaving .rl-gl {
+  background: var(--rl-accent);
+  box-shadow: 0 0 6px var(--rl-accent);
+}
+#rhine-splash[data-exit="iris"].is-leaving .rl-gl--h { width: var(--rl-gl-left, 100vw); animation: rl-iris-pull-x 300ms var(--e-io) both; }
+#rhine-splash[data-exit="iris"].is-leaving .rl-gl--v1 { height: var(--rl-gl-up, 100vh); animation: rl-iris-pull-y 300ms var(--e-io) both; }
+#rhine-splash[data-exit="iris"].is-leaving .rl-gl--v2 { height: var(--rl-gl-down, 100vh); animation: rl-iris-pull-y 300ms var(--e-io) both; }
+#rhine-splash .rl-iris-ping {
+  position: absolute;
+  left: var(--rl-cx);
+  top: var(--rl-cy);
+  width: 200px;
+  height: 200px;
+  margin: -100px 0 0 -100px;
+  z-index: 6;
+  overflow: visible;
+  fill: none;
+  stroke: var(--rl-accent);
+  stroke-width: 1.5;
+  pointer-events: none;
+  opacity: 0;
+  animation: rl-iris-ping 460ms var(--e-out) both;
+}
+#rhine-splash .rl-iris-ping polygon { vector-effect: non-scaling-stroke; }
+
+/* ------------------------------------------------------ reduced motion */
+
+#rhine-splash.is-reduced .rl-stage *,
+#rhine-splash.is-reduced .rl-stage *::before,
+#rhine-splash.is-reduced .rl-stage *::after { animation: none !important; }
+#rhine-splash.is-reduced .rl-access,
+#rhine-splash.is-reduced .rl-handoff { display: none; }
+#rhine-splash.is-reduced .rl-e-sweep,
+#rhine-splash.is-reduced .rl-spec-scan { opacity: 0; }
+#rhine-splash.is-reduced.is-leaving > * { animation: none !important; }
+#rhine-splash.is-reduced.is-leaving { animation: rl-out 320ms ease-out both; }
+
+/* ---------------------------------------------------- smaller windows */
+
+@media (max-width: 1099px), (max-height: 719px) {
+  #rhine-splash .rl-specimen { display: none; }
+}
+
+@media (max-height: 699px) {
+  #rhine-splash .rl-file,
+  #rhine-splash .rl-caution { display: none; }
+}
+
+@media (max-width: 899px) {
+  #rhine-splash .rl-rail { display: none; }
+}
+
+@media (max-width: 860px) {
+  #rhine-splash .rl-center { flex-direction: column; gap: 22px; padding-bottom: 110px; }
+  #rhine-splash .rl-emblem { width: 120px; height: 120px; }
+  #rhine-splash .rl-gl--h { display: none; }
+  #rhine-splash .rl-divider { width: 96px; height: 1px; }
+  #rhine-splash.is-playing .rl-divider { animation-name: rl-grow-x; }
+  #rhine-splash .rl-text { align-items: center; text-align: center; }
+  #rhine-splash .rl-title { font-size: clamp(20px, 5.4vw, 34px); }
+  #rhine-splash .rl-sub { font-size: 9.5px; letter-spacing: 0.1em; white-space: normal; max-width: 80vw; }
+  #rhine-splash .rl-tiles { justify-content: center; }
+  #rhine-splash .rl-watermark,
+  #rhine-splash .rl-file { display: none; }
+}
+
+@media (max-width: 700px) {
+  #rhine-splash .rl-top .rl-dim,
+  #rhine-splash .rl-top .rl-clock,
+  #rhine-splash .rl-top .rl-live { display: none; }
+  #rhine-splash .rl-foot-r { left: 50%; right: auto; transform: translateX(-50%); }
+  #rhine-splash .rl-tile { width: 52px; height: 52px; }
+  #rhine-splash .rl-tile-ab { font-size: 20px; }
+  #rhine-splash .rl-tile-cap { font-size: 6px; }
+}
+
+/* ---------------------------------------------------------- keyframes */
+
+@keyframes rl-fade { from { opacity: 0; } }
+@keyframes rl-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rl-out { to { opacity: 0; } }
+@keyframes rl-drop { from { opacity: 0; transform: translateY(-10px); } }
+@keyframes rl-slide { from { opacity: 0; transform: translateX(-12px); } }
+@keyframes rl-slide-r { from { opacity: 0; transform: translateX(12px); } }
+@keyframes rl-corner { from { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+@keyframes rl-draw { from { stroke-dashoffset: 1; } }
+@keyframes rl-arc { from { stroke-dasharray: 0 360; } }
+@keyframes rl-spin { to { transform: rotate(360deg); } }
+@keyframes rl-spin-rev { to { transform: rotate(-360deg); } }
+@keyframes rl-handoff { 0% { opacity: 1; transform: scaleX(0); } 50% { opacity: 1; transform: scaleX(1); } 100% { opacity: 0; transform: scaleX(1); } }
+@keyframes rl-lock { 0% { border-color: var(--rl-accent); } }
+@keyframes rl-ping { 35% { transform: scale(2.2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rl-accent) 30%, transparent); } }
+@keyframes rl-rise { from { opacity: 0; transform: translate(-50%, 6px); } }
+@keyframes rl-ticks-in { from { opacity: 0; transform: rotate(-40deg) scale(0.94); } }
+@keyframes rl-sweep {
+  0% { opacity: 0; transform: rotate(-60deg); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(300deg); }
+}
+@keyframes rl-pop { from { transform: scale(0); } }
+@keyframes rl-pulse { 50% { opacity: 0.45; } }
+@keyframes rl-grow-x { from { transform: scaleX(0); } }
+@keyframes rl-grow-y { from { transform: scaleY(0); } }
+@keyframes rl-char { from { opacity: 0; transform: translateY(0.3em); filter: blur(5px); } }
+@keyframes rl-blink { 50% { opacity: 0; } }
+@keyframes rl-hint { from { opacity: 0; } to { opacity: 0.75; } }
+@keyframes rl-field-in { from { opacity: 0; transform: scale(1.06) translateX(2%); } }
+@keyframes rl-drift { from { opacity: 0; transform: translateX(4vw); } }
+@keyframes rl-orbit-in { from { opacity: 0; transform: rotate(-140deg); } }
+@keyframes rl-arc-turn { from { transform: rotate(-90deg); } to { transform: rotate(90deg); } }
+@keyframes rl-spread { to { opacity: 0; letter-spacing: 0.9em; } }
+@keyframes rl-dim-in { from { opacity: 0; transform: translate(-6px, -50%); } }
+@keyframes rl-ink-in { from { color: var(--rl-muted); } }
+@keyframes rl-mk-hot { 0% { opacity: 0.3; } 1% { opacity: 1; background: var(--rl-accent); transform: scale(1.6); } 40% { background: var(--rl-accent); transform: none; } }
+@keyframes rl-panel-in { from { opacity: 0; clip-path: inset(0 0 100% 0); } to { opacity: 1; clip-path: inset(0); } }
+@keyframes rl-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes rl-wipe-wide { from { clip-path: inset(-14px 100% -14px -10px); } to { clip-path: inset(-14px -10px -14px -10px); } }
+@keyframes rl-head-in { from { opacity: 0; transform: translateY(-8px); } }
+@keyframes rl-glint { from { background-position: -56px 0, 0 0; } 70%, to { background-position: calc(100% + 56px) 0, 0 0; } }
+@keyframes rl-tile-in { from { opacity: 0; transform: rotateY(-80deg) translateX(-6px); } }
+@keyframes rl-focus { from { opacity: 0; transform: scale(0.86); filter: blur(6px); } }
+@keyframes rl-scan { 0% { top: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+@keyframes rl-hazard { to { background-position: 11.3px 0; } }
+@keyframes rl-stage-out { to { opacity: 0; transform: scale(1.015); } }
+@keyframes rl-seam {
+  0% { opacity: 1; transform: scaleX(0); }
+  65% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+@keyframes rl-door-up { to { transform: translateY(-101%); } }
+@keyframes rl-door-down { to { transform: translateY(101%); } }
+
+@property --rl-iris-s { syntax: '<number>'; inherits: true; initial-value: 0; }
+@keyframes rl-iris { from { --rl-iris-s: 0; } to { --rl-iris-s: var(--rl-iris-max); } }
+@keyframes rl-iris-prime { 45% { transform: scale(1.1); } 100% { transform: scale(0.96); } }
+@keyframes rl-iris-pull-x { to { transform: scaleX(0); } }
+@keyframes rl-iris-pull-y { to { transform: scaleY(0); } }
+@keyframes rl-iris-ping { 0% { opacity: 1; transform: scale(0.12); } 100% { opacity: 0; transform: scale(1.15); } }

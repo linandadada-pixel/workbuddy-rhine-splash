@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WB-like host</title>
+<!--
+  a comment with --> inside, like the real one
+-->
+<script>window.__inline1 = performance.now();<\/script>
+<script src="http://127.0.0.1:9447/slowseed"><\/script>
+<script type="module" src="./heavy.js"><\/script>
+</head>
+<body>
+<div id="skeleton-root" style="position:fixed;inset:0;background:#eee">SKELETON</div>
+<div id="root"></div>
+<script>window.__inline2 = performance.now(); document.title='booted';<\/script>
+</body>
+</html>
